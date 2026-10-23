@@ -50,7 +50,7 @@ _PATTERNS = [
 def _load_extra_words():
     words = []
     if os.path.exists(EXTRA_WORDS_FILE):
-        with open(EXTRA_WORDS_FILE, encoding="utf-8") as f:
+        with open(EXTRA_WORDS_FILE, encoding="utf-8-sig") as f:
             for line in f:
                 w = line.strip()
                 if w and not w.startswith("#"):
