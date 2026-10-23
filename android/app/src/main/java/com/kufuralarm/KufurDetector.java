@@ -24,7 +24,7 @@ public final class KufurDetector {
     };
 
     private static final Pattern RE;
-    private static final Pattern CENSORED = Pattern.compile("\\w+\\*+\\w*",
+    private static final Pattern CENSORED = Pattern.compile("\\S*\\*+\\S*",
             Pattern.UNICODE_CHARACTER_CLASS);
 
     static {

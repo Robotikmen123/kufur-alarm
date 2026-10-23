@@ -11,12 +11,14 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <queries>
+        <package android:name="com.google.android.googlequicksearchbox" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 
     <application
+        android:name=".App"
         android:label="Küfür Alarmı"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

@@ -71,7 +71,7 @@ def find_kufur(text: str):
     t = tr_lower(text)
     hits = [m.group(0) for m in KUFUR_RE.finditer(t)]
     # Google bazen küfrü "s****" gibi yıldızlar. Bunu da küfür say.
-    hits += re.findall(r"\w+\*+\w*", t)
+    hits += re.findall(r"\S*\*+\S*", t)
     return hits
 
 

@@ -56,6 +56,31 @@ public class ListenService extends Service implements RecognitionListener {
         return n;
     }
 
+    /** Uygulama ekranında görünen durum satırı. */
+    static void report(Context c, String msg) {
+        prefs(c).edit().putString("status", msg).apply();
+        c.sendBroadcast(new Intent("com.kufuralarm.UPDATE").setPackage(c.getPackageName()));
+    }
+
+    static String errName(int e) {
+        switch (e) {
+            case 1: return "ağ zaman aşımı";
+            case 2: return "ağ hatası";
+            case 3: return "ses kaydı hatası";
+            case 4: return "sunucu hatası";
+            case 5: return "istemci hatası";
+            case 6: return "konuşma yok";
+            case 7: return "eşleşme yok";
+            case 8: return "tanıyıcı meşgul";
+            case 9: return "izin yetersiz";
+            case 10: return "çok fazla istek";
+            case 11: return "sunucu bağlantısı koptu";
+            case 12: return "dil desteklenmiyor";
+            case 13: return "dil indirilmemiş";
+            default: return "hata " + e;
+        }
+    }
+
     static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences("kufur", MODE_PRIVATE);
     }
@@ -69,15 +94,24 @@ public class ListenService extends Service implements RecognitionListener {
             stopSelf();
             return START_NOT_STICKY;
         }
-        startForegroundCompat();
+        try {
+            startForegroundCompat();
+        } catch (Throwable e) {
+            report(this, "Servis başlatılamadı: " + e);
+            App.saveCrash(this, e);
+            running = false;
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         if (!running) {
             running = true;
             am = (AudioManager) getSystemService(AUDIO_SERVICE);
             muteBeeps(true);
             initRecognizer();
             startListening();
+            report(this, "Dinleniyor 🎙️");
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private void startForegroundCompat() {
@@ -112,7 +146,16 @@ public class ListenService extends Service implements RecognitionListener {
         if (sr != null) {
             try { sr.destroy(); } catch (Exception ignored) {}
         }
-        sr = SpeechRecognizer.createSpeechRecognizer(this);
+        sr = null;
+        // Önce Google'ın tanıyıcısını dene (Türkçe'de en iyisi), yoksa varsayılan.
+        android.content.ComponentName g = new android.content.ComponentName(
+                "com.google.android.googlequicksearchbox",
+                "com.google.android.voicesearch.serviceapi.GoogleRecognitionService");
+        try {
+            getPackageManager().getServiceInfo(g, 0);
+            sr = SpeechRecognizer.createSpeechRecognizer(this, g);
+        } catch (Exception ignored) {}
+        if (sr == null) sr = SpeechRecognizer.createSpeechRecognizer(this);
         sr.setRecognitionListener(this);
         recIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -167,6 +210,7 @@ public class ListenService extends Service implements RecognitionListener {
         if (b == null) return;
         ArrayList<String> list = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (list == null || list.isEmpty()) return;
+        report(this, "Duydu: " + list.get(0));
         // İlk (en olası) sonuç + alternatifler: herhangi birinde küfür varsa yakala.
         for (String text : list) {
             List<String> hits = KufurDetector.find(text);
@@ -193,7 +237,9 @@ public class ListenService extends Service implements RecognitionListener {
     }
 
     @Override public void onError(int error) {
+        if (error != 6 && error != 7) report(this, "Tanıyıcı: " + errName(error) + " (tekrar deneniyor)");
         long d = 100;
+        if (error == 9) d = 5000;
         if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) d = 500;
         if (error == SpeechRecognizer.ERROR_NETWORK
                 || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT

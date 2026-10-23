@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends Activity {
-    private TextView status, count;
+    private TextView status, count, info;
     private Button toggle, overlayBtn, micBtn, batteryBtn;
 
     private final BroadcastReceiver upd = new BroadcastReceiver() {
@@ -54,6 +54,8 @@ public class MainActivity extends Activity {
         count = tv("", 20, Color.rgb(255, 92, 92));
         count.setTypeface(null, Typeface.BOLD);
         l.addView(count);
+        info = tv("", 14, Color.rgb(230, 230, 230));
+        l.addView(info);
 
         micBtn = btn("1) Mikrofon ve bildirim izni ver", new View.OnClickListener() {
             @Override public void onClick(View v) { askRuntimePerms(); }
@@ -151,7 +153,13 @@ public class MainActivity extends Activity {
         boolean run = ListenService.running;
         toggle.setText(run ? "⏹ Dinlemeyi durdur" : "▶ Dinlemeyi başlat");
         toggle.setBackgroundColor(run ? Color.rgb(90, 90, 96) : Color.rgb(220, 30, 30));
-        status.setText(run ? "Dinleniyor 🎙️" : "Kapalı");
+        status.setText(run ? "Servis açık" : "Kapalı");
+        android.content.SharedPreferences p = ListenService.prefs(this);
+        String st = p.getString("status", "");
+        String cr = p.getString("crash", "");
+        String txt = run ? st : "";
+        if (cr.length() > 0) txt += "\n\nSon çökme (ekran görüntüsü atabilirsin):\n" + cr;
+        info.setText(txt);
         count.setText("Bugünkü küfür sayısı: " + ListenService.todayCount(this));
     }
 
@@ -175,9 +183,15 @@ public class MainActivity extends Activity {
         } else {
             if (!hasMic()) { toast("Önce mikrofon iznini ver"); askRuntimePerms(); return; }
             if (!AlertOverlay.canShow(this)) { toast("Önce 'üstte göster' iznini ver"); return; }
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+            ListenService.prefs(this).edit().remove("crash").putString("status", "Başlatılıyor...").apply();
+            try {
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+                ListenService.running = true;
+            } catch (Throwable e) {
+                App.saveCrash(this, e);
+            }
         }
-        status.postDelayed(new Runnable() { @Override public void run() { refresh(); } }, 400);
+        status.postDelayed(new Runnable() { @Override public void run() { refresh(); } }, 1500);
     }
 
     private TextView tv(String s, int sp, int color) {
