@@ -1,0 +1,12 @@
+KÜFÜR ALARMI (PC)
+
+1) Klasörü bir yere çıkar (örn. Belgeler).
+2) Kurulum.bat dosyasına çift tıkla. Python ve gerekli paketler otomatik kurulur.
+3) Masaüstündeki "Kufur Alarmi" kısayoluyla aç.
+
+- Küfür duyulunca tüm ekranlar 5 saniye kırmızı olur, kapatılamaz.
+- "Uyarıyı test et" butonuyla deneyebilirsin.
+- Oyunlarda uyarının görünmesi için oyunu "Kenarlıksız pencere" (Borderless) modunda aç.
+  Tam ekran (exclusive fullscreen) modu bazı oyunlarda uyarının üstüne çıkar.
+- Kayıtlar kufur_kayit.csv dosyasında (Excel ile açılır).
+- İnternet gerekir (Google konuşma tanıma).

@@ -1,0 +1,4 @@
+# Buraya ekstra yakalanmasını istediğin kelimeleri yaz (her satıra bir tane)
+# Örnek:
+# salak
+# gerizekalı
