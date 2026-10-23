@@ -1,5 +1,8 @@
 name: APK
-on: [push, workflow_dispatch]
+on:
+  push:
+    paths: ["android/**", ".github/workflows/build.yml"]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:

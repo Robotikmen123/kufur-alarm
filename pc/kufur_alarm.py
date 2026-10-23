@@ -16,7 +16,10 @@ try:
 except ImportError:  # sadece test modunda gerekmez
     tk = None
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, "frozen", False):  # .exe olarak çalışıyorsa exe'nin yanına yaz
+    APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(APP_DIR, "kufur_kayit.csv")
 EXTRA_WORDS_FILE = os.path.join(APP_DIR, "ekstra_kelimeler.txt")
 ALERT_SECONDS = 5
