@@ -107,6 +107,26 @@ public class MainActivity extends Activity {
         l.addView(toggle);
         l.addView(test);
         l.addView(mute);
+
+        l.addView(tv("\nEkstra yakalanacak kelimeler (her satıra bir tane):", 14, Color.rgb(220, 220, 220)));
+        final android.widget.EditText extra = new android.widget.EditText(this);
+        extra.setMinLines(3);
+        extra.setGravity(Gravity.TOP | Gravity.START);
+        extra.setTextColor(Color.WHITE);
+        extra.setHintTextColor(Color.rgb(120, 120, 120));
+        extra.setHint("örn.\nsalak\ngerizekalı");
+        extra.setBackgroundColor(Color.rgb(45, 45, 52));
+        extra.setPadding(24, 24, 24, 24);
+        extra.setText(ListenService.prefs(this).getString("extra", ""));
+        l.addView(extra);
+        l.addView(btn("Kelimeleri kaydet", new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                String txt = extra.getText().toString();
+                ListenService.prefs(MainActivity.this).edit().putString("extra", txt).apply();
+                KufurDetector.setExtra(txt);
+                toast("Kaydedildi ✅");
+            }
+        }));
         l.addView(tv("\nNot: Konuşmalar Google'ın konuşma tanıma servisiyle yazıya çevrilir. "
                 + "İnternet gerekir.", 12, Color.rgb(120, 120, 120)));
 

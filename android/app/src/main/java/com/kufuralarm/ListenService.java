@@ -105,6 +105,7 @@ public class ListenService extends Service implements RecognitionListener {
             return START_NOT_STICKY;
         }
         running = true;
+        KufurDetector.setExtra(prefs(this).getString("extra", ""));
         if (!started) {
             started = true;
             am = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -165,7 +166,7 @@ public class ListenService extends Service implements RecognitionListener {
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR");
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "tr-TR");
         recIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        recIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+        recIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         recIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         // Profanity filtresini kapatmayı dene (destekleyen cihazlarda).
         recIntent.putExtra("android.speech.extra.PROFANITY_FILTER", false);

@@ -35,18 +35,39 @@ def tr_lower(text: str) -> str:
     return text.translate(_TR_LOWER).lower()
 
 
-# Kalıplar Türkçe harflerle yazılır (ı ile i farklıdır: "sık" küfür değil).
+def fold(text: str) -> str:
+    """Türkçe harfleri sadeleştirir: ı→i, ş→s, ç→c, ğ→g, ö→o, ü→u."""
+    return text.translate(_FOLD)
+
+
+_FOLD = str.maketrans("ışçğöüâîû", "iscgouaiu")
+
+# 1) Asıl metin üzerinde (Türkçe harflerle). "ı" ile "i" ayrı: "sık" küfür değil.
 _PATTERNS = [
-    r"am[kq]", r"aq", r"amq", r"mk",
-    r"amına\w*", r"amını", r"amcık\w*", r"amınako\w*",
-    r"orospu\w*", r"oç", r"o\.ç", r"piç\w*",
-    r"(?!sikke)sik\w*", r"hassik\w*", r"siktir\w*", r"s\.ktir\w*",
-    r"yarr?ak\w*", r"dalyarak\w*", r"yavşak\w*",
-    r"göt", r"götü", r"götün\w*", r"götver\w*", r"götlek\w*", r"göte", r"götten",
+    r"am[kq]\w*", r"aq", r"a\.q", r"mk",
+    r"amına\w*", r"amını\w*", r"amcık\w*", r"amınako\w*", r"amınıza\w*",
+    r"anan", r"ananı\w*", r"ananın\w*", r"anana", r"ananız\w*",
+    r"bacın\w*", r"avradın\w*", r"sülaleni\w*", r"ecdadını\w*", r"ceddini\w*",
+    r"orospu\w*", r"oruspu\w*", r"oç", r"o\.ç", r"piç\w*",
+    r"(?!sikke)sik\w*", r"hassik\w*", r"s\.ktir\w*", r"sg",
+    r"yarrak\w*", r"yarak\w*", r"yarrağ\w*", r"yarağ\w*", r"yarram\w*",
+    r"dalyarak\w*", r"yavşak\w*", r"taşak\w*", r"taşşak\w*", r"daşşak\w*",
+    r"göt", r"götü", r"götün\w*", r"götüm\w*", r"götver\w*", r"götlek\w*", r"göte", r"götten",
     r"ibne\w*", r"pezevenk\w*", r"kahpe\w*", r"gavat\w*", r"puşt\w*",
-    r"şerefsiz\w*", r"namussuz\w*", r"kaltak\w*", r"sürtük\w*",
-    r"bok", r"boku", r"boktan", r"bokum\w*", r"bokun\w*",
-    r"amk\w*", r"aminako\w*", r"amina\w*",  # bazı tanıyıcılar ı yerine i yazar
+    r"şerefsiz\w*", r"namussuz\w*", r"kaltak\w*", r"sürtük\w*", r"kancık\w*",
+    r"bok", r"boku", r"boka", r"boktan", r"bokum\w*", r"bokun\w*",
+]
+
+# 2) Sadeleştirilmiş metin üzerinde: tanıyıcı harfleri yanlış yazsa da yakalar
+#    ("amina", "siktir", "sıktır", "orospu", "serefsiz"...).
+_FOLDED_PATTERNS = [
+    r"amina\w*", r"amini\w*", r"aminako\w*", r"amcik\w*", r"amk\w*",
+    r"anani\w*", r"ananin\w*", r"bacini\w*", r"bacinin\w*", r"avradini\w*",
+    r"orospu\w*", r"oruspu\w*", r"oc", r"pic", r"pici\w*", r"picler\w*",
+    r"siktir\w*", r"siktig\w*", r"sikeyim", r"sikerim", r"sikim\w*", r"sikik\w*",
+    r"yarrak\w*", r"yarak\w*", r"yarag\w*", r"yavsak\w*", r"tasak\w*", r"dassak\w*",
+    r"serefsiz\w*", r"pezevenk\w*", r"ibne\w*", r"gavat\w*", r"kahpe\w*",
+    r"pust\w*", r"surtuk\w*", r"kancik\w*", r"gotun\w*", r"gotver\w*",
 ]
 
 
@@ -61,18 +82,24 @@ def _load_extra_words():
     return words
 
 
-def build_regex():
-    pats = _PATTERNS + _load_extra_words()
+def _compile(pats):
     return re.compile(r"(?<!\w)(?:" + "|".join(pats) + r")(?!\w)")
 
 
-KUFUR_RE = build_regex()
+def build_regex():
+    extra = _load_extra_words()
+    return _compile(_PATTERNS + extra), _compile(_FOLDED_PATTERNS + [fold(w) for w in extra])
+
+
+KUFUR_RE, KUFUR_FOLDED_RE = build_regex()
 
 
 def find_kufur(text: str):
     """Bulunan küfürleri listeler. Tanıyıcı '*' ile sansürlediyse onu da yakalar."""
     t = tr_lower(text)
     hits = [m.group(0) for m in KUFUR_RE.finditer(t)]
+    if not hits:
+        hits = [m.group(0) for m in KUFUR_FOLDED_RE.finditer(fold(t))]
     # Google bazen küfrü "s****" gibi yıldızlar. Bunu da küfür say.
     hits += re.findall(r"\S*\*+\S*", t)
     return hits
@@ -257,7 +284,7 @@ class App:
             return
         r = sr.Recognizer()
         r.dynamic_energy_threshold = True
-        r.pause_threshold = 0.5
+        r.pause_threshold = 0.4
         r.non_speaking_duration = 0.3
         try:
             mic = sr.Microphone()
@@ -270,7 +297,7 @@ class App:
 
         def worker(audio):
             try:
-                text = r.recognize_google(audio, language=LANG, pfilter=0)
+                res = r.recognize_google(audio, language=LANG, pfilter=0, show_all=True)
             except sr.UnknownValueError:
                 return
             except sr.RequestError:
@@ -278,17 +305,25 @@ class App:
                 return
             except Exception:
                 return
+            alts = []
+            if isinstance(res, dict):
+                alts = [a.get("transcript", "") for a in res.get("alternative", [])]
+            if not alts:
+                return
             self.events.put(("status", "Dinleniyor 🎙️"))
-            self.events.put(("heard", text))
-            hits = find_kufur(text)
-            if hits:
-                self.events.put(("kufur", (text, hits)))
+            self.events.put(("heard", alts[0]))
+            # İlk tahminde yoksa diğer tahminlere de bak.
+            for text in alts:
+                hits = find_kufur(text)
+                if hits:
+                    self.events.put(("kufur", (text, hits)))
+                    return
 
         def callback(_rec, audio):
             if self.listening:
                 threading.Thread(target=worker, args=(audio,), daemon=True).start()
 
-        self._stop = r.listen_in_background(mic, callback, phrase_time_limit=4)
+        self._stop = r.listen_in_background(mic, callback, phrase_time_limit=5)
 
     def run(self):
         self.root.mainloop()
