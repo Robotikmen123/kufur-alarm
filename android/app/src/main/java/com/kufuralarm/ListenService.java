@@ -39,6 +39,7 @@ public class ListenService extends Service implements RecognitionListener {
     private AudioManager am;
     private String lastHitText = "";
     private boolean stopping = false;
+    private boolean started = false;   // bu servis örneği dinlemeyi başlattı mı
 
     // ---- sayaç -------------------------------------------------------------
     static String today() {
@@ -103,8 +104,9 @@ public class ListenService extends Service implements RecognitionListener {
             stopSelf();
             return START_NOT_STICKY;
         }
-        if (!running) {
-            running = true;
+        running = true;
+        if (!started) {
+            started = true;
             am = (AudioManager) getSystemService(AUDIO_SERVICE);
             muteBeeps(true);
             initRecognizer();
