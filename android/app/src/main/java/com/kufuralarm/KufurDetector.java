@@ -23,9 +23,10 @@ public final class KufurDetector {
         "amk\\w*", "aminako\\w*", "amina\\w*"
     };
 
+    /** Harf sınıfı: Android'de de Türkçe harfleri kapsar (ç, ğ, ı, ö, ş, ü). */
+    private static final String L = "[\\p{L}\\p{N}_]";
     private static final Pattern RE;
-    private static final Pattern CENSORED = Pattern.compile("\\S*\\*+\\S*",
-            Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern CENSORED = Pattern.compile("\\S*\\*+\\S*");
 
     static {
         StringBuilder sb = new StringBuilder("(?<!\\w)(?:");
@@ -34,7 +35,7 @@ public final class KufurDetector {
             sb.append(PATTERNS[i]);
         }
         sb.append(")(?!\\w)");
-        RE = Pattern.compile(sb.toString(), Pattern.UNICODE_CHARACTER_CLASS);
+        RE = Pattern.compile(sb.toString().replace("\\w", L));
     }
 
     private KufurDetector() {}
