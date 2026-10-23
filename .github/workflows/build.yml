@@ -1,7 +1,10 @@
 name: APK
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,5 +15,17 @@ jobs:
       - run: gradle assembleRelease --no-daemon
         working-directory: android
       - run: cp android/app/build/outputs/apk/release/app-release.apk KufurAlarm.apk
-      - uses: actions/upload-artifact@v4
-        with: { name: KufurAlarm-apk, path: KufurAlarm.apk }
+      - name: APK'yı apk dalına koy
+        run: |
+          mkdir out && cp KufurAlarm.apk out/ && cd out
+          git init -q -b apk
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add KufurAlarm.apk
+          git commit -q -m "APK ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk
+      - name: Sürüm yayınla
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest KufurAlarm.apk -t "Küfür Alarmı" -n "Telefona indir ve kur."
